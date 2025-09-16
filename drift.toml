@@ -1,0 +1,89 @@
+# Drift Registry Configuration
+# This is the main configuration file for the Drift OCI Registry
+
+[server]
+bind_addr = "0.0.0.0:5000"
+ui_addr   = "0.0.0.0:5001"
+workers = 4
+max_connections = 1000
+
+[auth]
+mode = "basic"  # "basic" | "token" | "oidc"
+jwt_secret = "your-secret-key-change-me-in-production"
+token_expiry_hours = 24
+
+[auth.basic]
+users = [
+    "admin:changeme",
+    "ci:tokenonly",
+    "developer:devpass123"
+]
+
+# Uncomment for OIDC authentication
+# [auth.oidc]
+# issuer = "https://auth.example.com/realms/main"
+# client_id = "drift"
+# client_secret = "your-oidc-client-secret"
+
+[storage]
+backend = "fs"  # "fs" | "s3" | "ghostbay"
+path = "/var/lib/drift"
+
+# Database configuration (optional)
+[database]
+# Options: "sqlite", "postgres", "zqlite"
+backend = "sqlite"
+# For SQLite (embedded)
+sqlite_path = "/var/lib/drift/drift.db"
+# For PostgreSQL
+# postgres_url = "postgres://drift:driftpass123@postgres:5432/drift"
+# For ZQLite (high-performance Zig database)
+# zqlite_url = "zqlite://zqlite:5433/drift"
+
+# Uncomment for S3/MinIO storage
+# [storage.s3]
+# endpoint = "http://minio:9000"
+# region = "us-east-1"
+# bucket = "drift-registry"
+# access_key = "driftuser"
+# secret_key = "driftpass123"
+# path_style = true
+
+# Uncomment for GhostBay storage
+# [storage.ghostbay]
+# endpoint = "http://ghostbay:8080"
+# bucket = "drift-registry"
+
+[registry]
+max_upload_size_mb = 1000
+rate_limit_per_hour = 1000
+immutable_tags = ["release", "prod", "stable"]
+min_age_days = 7
+
+[bolt]
+# Integration with Bolt container runtime
+enable_profile_validation = true
+enable_plugin_sandbox = true
+auto_update_profiles = false
+# registry_url = "http://localhost:5000"
+
+[ghostbay]
+# Integration with GhostBay storage
+enable_s3_compat = true
+storage_engine = "local"
+max_object_size_gb = 50
+
+# Uncomment for production TLS
+# [tls]
+# cert_file = "/etc/ssl/certs/drift.crt"
+# key_file = "/etc/ssl/private/drift.key"
+
+# Logging configuration
+[logging]
+level = "info"
+format = "json"  # "json" | "pretty"
+
+# Metrics and monitoring
+[metrics]
+enabled = true
+endpoint = "/metrics"

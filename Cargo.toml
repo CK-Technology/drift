@@ -1,0 +1,93 @@
+[package]
+name = "drift"
+version = "0.1.0"
+edition = "2024"
+description = "A modern, high-performance OCI Registry + Web UI for Bolt, Docker, Podman"
+license = "MIT"
+repository = "https://github.com/CK-Technology/drift"
+
+[dependencies]
+# Web framework and async runtime
+axum = { version = "0.7", features = ["multipart", "ws", "headers"] }
+tokio = { version = "1.40", features = ["full"] }
+tower = { version = "0.4", features = ["util", "timeout", "load-shed"] }
+tower-http = { version = "0.5", features = ["fs", "trace", "cors", "compression-gzip"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Serialization and data formats
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Async utilities
+futures = "0.3"
+bytes = "1.7"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Error handling and utilities
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# HTTP client for external requests
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Cryptography and hashing
+sha2 = "0.10"
+digest = "0.10"
+
+# Configuration
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Authentication and JWT
+jsonwebtoken = "9.3"
+bcrypt = "0.15"
+
+# OAuth2 and SSO support
+oauth2 = "4.4"
+openidconnect = "3.5"
+url = "2.4"
+
+# Database support (SQLite for dev, PostgreSQL for prod)
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "postgres", "chrono", "uuid"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Container image handling
+oci-spec = "0.6"
+
+# Storage backends
+async-trait = "0.1"
+
+# MinIO and S3 support
+aws-config = { version = "1.1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.14"
+aws-smithy-types = "1.1"
+
+# Web UI with Leptos
+leptos = { version = "0.6", features = ["ssr"] }
+leptos_axum = { version = "0.6", features = ["default"] }
+leptos_meta = { version = "0.6", features = ["ssr"] }
+leptos_router = { version = "0.6", features = ["ssr"] }
+
+# Frontend build tools
+wasm-bindgen = "0.2"
+
+# Bolt integration (when available)
+# bolt = { git = "https://github.com/CK-Technology/bolt", features = ["registry"], optional = true }
+
+# GhostBay storage integration (when available)
+# ghostbay-engine = { git = "https://github.com/CK-Technology/ghostbay", optional = true }
+# ghostbay-auth = { git = "https://github.com/CK-Technology/ghostbay", optional = true }
+# ghostbay-catalog = { git = "https://github.com/CK-Technology/ghostbay", optional = true }
+
+[features]
+default = []
+bolt-integration = [] # Enable when bolt crate is available
+ghostbay-storage = [] # Enable when ghostbay crates are available
+
+[[bin]]
+name = "drift"
+path = "src/main.rs"

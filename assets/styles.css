@@ -1,0 +1,316 @@
+/* Drift Registry - Modern UI Styles */
+
+/* Custom properties for theming */
+:root {
+  --drift-primary: #0ea5e9;
+  --drift-primary-dark: #0284c7;
+  --drift-secondary: #06b6d4;
+  --drift-accent: #22d3ee;
+  --drift-dark: #1e3a8a;
+  --drift-dark-lighter: #1e40af;
+
+  /* Background gradients */
+  --drift-gradient: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  --drift-gradient-dark: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+
+  /* Shadows */
+  --drift-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --drift-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --drift-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --drift-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Glass morphism */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-bg-dark: rgba(0, 0, 0, 0.2);
+  --glass-border-dark: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode variables */
+.dark {
+  --glass-bg: var(--glass-bg-dark);
+  --glass-border: var(--glass-border-dark);
+}
+
+/* Smooth transitions for all elements */
+* {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--drift-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--drift-primary-dark);
+}
+
+/* Glass morphism components */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+}
+
+/* Enhanced buttons */
+.btn-primary {
+  @apply px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium rounded-lg;
+  @apply hover:from-blue-700 hover:to-cyan-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  @apply transition-all duration-200 transform hover:scale-105 active:scale-95;
+  box-shadow: var(--drift-shadow);
+}
+
+.btn-secondary {
+  @apply px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg;
+  @apply border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700;
+  @apply focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  @apply transition-all duration-200 transform hover:scale-105 active:scale-95;
+  box-shadow: var(--drift-shadow-sm);
+}
+
+.btn-ghost {
+  @apply px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white;
+  @apply hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium;
+  @apply transition-all duration-200;
+}
+
+/* Enhanced cards */
+.card {
+  @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700;
+  @apply hover:shadow-lg transition-all duration-300 hover:-translate-y-1;
+  box-shadow: var(--drift-shadow);
+}
+
+.card-glass {
+  @apply rounded-xl;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--drift-shadow-lg);
+}
+
+/* Enhanced inputs */
+.input-modern {
+  @apply w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg;
+  @apply bg-white dark:bg-gray-700 text-gray-900 dark:text-white;
+  @apply focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  @apply transition-all duration-200;
+  box-shadow: var(--drift-shadow-sm);
+}
+
+.input-modern:focus {
+  transform: translateY(-1px);
+  box-shadow: var(--drift-shadow);
+}
+
+/* Navigation enhancements */
+.nav-link {
+  @apply flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium;
+  @apply transition-all duration-200 relative overflow-hidden;
+}
+
+.nav-link.active {
+  @apply text-blue-600 dark:text-blue-400;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.1));
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: var(--drift-gradient);
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-link:hover:not(.active) {
+  @apply bg-gray-100 dark:bg-gray-700 transform scale-105;
+}
+
+/* Animated icons */
+.icon-animated {
+  @apply transition-transform duration-200;
+}
+
+.icon-animated:hover {
+  @apply transform scale-110;
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Pulse animation */
+.pulse-slow {
+  animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Stats cards enhancement */
+.stats-card {
+  @apply card p-6 relative overflow-hidden;
+}
+
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--drift-gradient);
+}
+
+/* Enhanced gradients */
+.gradient-text {
+  background: var(--drift-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-border {
+  position: relative;
+  background: linear-gradient(white, white) padding-box,
+              var(--drift-gradient) border-box;
+  border: 2px solid transparent;
+  border-radius: 8px;
+}
+
+/* Dark mode specific enhancements */
+.dark .gradient-border {
+  background: linear-gradient(rgb(31 41 55), rgb(31 41 55)) padding-box,
+              var(--drift-gradient) border-box;
+}
+
+/* Floating action button */
+.fab {
+  @apply fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-600;
+  @apply text-white rounded-full shadow-lg hover:shadow-xl;
+  @apply flex items-center justify-center transition-all duration-300;
+  @apply hover:scale-110 active:scale-95;
+  z-index: 50;
+}
+
+/* Modern sidebar */
+.sidebar {
+  @apply w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700;
+  @apply transition-all duration-300;
+  box-shadow: var(--drift-shadow);
+}
+
+.sidebar-collapsed {
+  @apply w-16;
+}
+
+/* Enhanced table styles */
+.table-modern {
+  @apply w-full border-collapse;
+}
+
+.table-modern th {
+  @apply px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+  @apply bg-gray-50 dark:bg-gray-700;
+}
+
+.table-modern td {
+  @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white;
+  @apply border-b border-gray-200 dark:border-gray-700;
+}
+
+.table-modern tr:hover {
+  @apply bg-gray-50 dark:bg-gray-700;
+}
+
+/* Custom animations */
+@keyframes slideInFromRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { transform: translateY(30px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .stats-card {
+    @apply p-4;
+  }
+
+  .btn-primary, .btn-secondary {
+    @apply px-4 py-2 text-sm;
+  }
+}
+
+/* Focus indicators for accessibility */
+.focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card {
+    @apply border-2;
+  }
+
+  .btn-primary {
+    @apply border-2 border-blue-800;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .card {
+    @apply shadow-none border;
+  }
+}

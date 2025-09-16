@@ -1,0 +1,244 @@
+version: '3.8'
+
+services:
+  # Drift Registry - Main application
+  drift:
+    build: .
+    container_name: drift-registry
+    ports:
+      - "5000:5000"  # Registry API
+      - "5001:5001"  # Web UI
+    environment:
+      # Core configuration
+      - DRIFT_BIND_ADDR=0.0.0.0:5000
+      - DRIFT_UI_ADDR=0.0.0.0:5001
+      - RUST_LOG=drift=info,tower_http=debug
+
+      # Storage configuration (choose one)
+      # Filesystem storage
+      - DRIFT_STORAGE_BACKEND=fs
+      - DRIFT_FS_ROOT=/var/lib/drift
+
+      # S3/MinIO storage (uncomment to use)
+      # - DRIFT_STORAGE_BACKEND=s3
+      # - DRIFT_S3_ENDPOINT=http://minio:9000
+      # - DRIFT_S3_REGION=us-east-1
+      # - DRIFT_S3_BUCKET=drift-registry
+      # - DRIFT_S3_ACCESS_KEY=driftuser
+      # - DRIFT_S3_SECRET_KEY=driftpass123
+      # - DRIFT_S3_PATH_STYLE=true
+
+      # Authentication
+      - DRIFT_AUTH=basic
+      - DRIFT_USERS=admin:changeme,ci:tokenonly
+
+      # Registry settings
+      - DRIFT_MAX_UPLOAD_SIZE_MB=1000
+      - DRIFT_RATE_LIMIT_PER_HOUR=1000
+
+      # Bolt integration
+      - DRIFT_BOLT_ENABLE_PROFILE_VALIDATION=true
+      - DRIFT_BOLT_ENABLE_PLUGIN_SANDBOX=true
+      - DRIFT_BOLT_AUTO_UPDATE_PROFILES=false
+
+      # GhostBay integration
+      - DRIFT_GHOSTBAY_ENABLE_S3_COMPAT=true
+      - DRIFT_GHOSTBAY_MAX_OBJECT_SIZE_GB=50
+    volumes:
+      - drift-data:/var/lib/drift
+      - ./drift.toml:/app/drift.toml:ro
+    depends_on:
+      - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+  # MinIO - S3-compatible object storage
+  minio:
+    image: minio/minio:latest
+    container_name: drift-minio
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      - MINIO_ROOT_USER=driftuser
+      - MINIO_ROOT_PASSWORD=driftpass123
+      - MINIO_REGION_NAME=us-east-1
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+  # MinIO Client - Initialize buckets
+  minio-init:
+    image: minio/mc:latest
+    container_name: drift-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 driftuser driftpass123;
+      /usr/bin/mc mb myminio/drift-registry;
+      /usr/bin/mc policy set public myminio/drift-registry;
+      exit 0;
+      "
+    networks:
+      - drift-network
+
+  # PostgreSQL - Database for metadata (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: drift-postgres
+    environment:
+      - POSTGRES_DB=drift
+      - POSTGRES_USER=drift
+      - POSTGRES_PASSWORD=driftpass123
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drift"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+  # ZQLite - High-performance Zig database (alternative to PostgreSQL)
+  zqlite:
+    build:
+      context: ./zqlite
+      dockerfile: Dockerfile
+    container_name: drift-zqlite
+    environment:
+      - ZQLITE_MODE=server
+      - ZQLITE_PORT=5433
+      - ZQLITE_DATA_DIR=/var/lib/zqlite
+      - ZQLITE_LOG_LEVEL=info
+    ports:
+      - "5433:5433"
+    volumes:
+      - zqlite-data:/var/lib/zqlite
+    healthcheck:
+      test: ["CMD", "./zqlite", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - drift-network
+    profiles:
+      - zqlite  # Enable with: docker compose --profile zqlite up
+
+  # Redis - Caching and session storage (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: drift-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+  # Nginx - Reverse proxy and load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: drift-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - drift
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: drift-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: drift-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - drift-network
+
+volumes:
+  drift-data:
+    driver: local
+  minio-data:
+    driver: local
+  postgres-data:
+    driver: local
+  zqlite-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  drift-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
