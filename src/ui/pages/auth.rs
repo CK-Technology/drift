@@ -11,14 +11,14 @@ pub fn LoginForm() -> impl IntoView {
     let (error_message, set_error_message) = create_signal(Option::<String>::None);
 
     let handle_credentials_login = move |_| {
-        set_is_loading(true);
-        set_error_message(None);
+        set_is_loading.set(true);
+        set_error_message.set(None);
         // TODO: Implement credentials authentication
     };
 
     let handle_oauth_login = move |provider: &str| {
-        set_is_loading(true);
-        set_error_message(None);
+        set_is_loading.set(true);
+        set_error_message.set(None);
         // TODO: Redirect to OAuth provider
         match provider {
             "azure" => web_sys::window().unwrap().location().set_href("/auth/azure").unwrap(),
@@ -56,7 +56,7 @@ pub fn LoginForm() -> impl IntoView {
                         <button
                             class=move || format!(
                                 "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 {}",
-                                if login_method() == "credentials" {
+                                if login_method.get() == "credentials" {
                                     "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
                                 } else {
                                     "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -69,7 +69,7 @@ pub fn LoginForm() -> impl IntoView {
                         <button
                             class=move || format!(
                                 "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 {}",
-                                if login_method() == "sso" {
+                                if login_method.get() == "sso" {
                                     "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
                                 } else {
                                     "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -83,7 +83,7 @@ pub fn LoginForm() -> impl IntoView {
 
                     // Error message
                     {move || {
-                        if let Some(error) = error_message() {
+                        if let Some(error) = error_message.get() {
                             view! {
                                 <div class="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                                     <p class="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -96,7 +96,7 @@ pub fn LoginForm() -> impl IntoView {
 
                     // Login content
                     {move || {
-                        if login_method() == "credentials" {
+                        if login_method.get() == "credentials" {
                             view! {
                                 <form class="space-y-6" on:submit=handle_credentials_login>
                                     <div>
@@ -110,7 +110,7 @@ pub fn LoginForm() -> impl IntoView {
                                             prop:disabled=is_loading
                                             on:input=move |ev| {
                                                 let val = event_target_value(&ev);
-                                                set_username(val);
+                                                set_username.set(val);
                                             }
                                             prop:value=username
                                         />
@@ -122,23 +122,23 @@ pub fn LoginForm() -> impl IntoView {
                                         </label>
                                         <div class="relative">
                                             <input
-                                                type=move || if show_password() { "text" } else { "password" }
+                                                type=move || if show_password.get() { "text" } else { "password" }
                                                 class="input-modern pr-10"
                                                 placeholder="Enter your password"
                                                 prop:disabled=is_loading
                                                 on:input=move |ev| {
                                                     let val = event_target_value(&ev);
-                                                    set_password(val);
+                                                    set_password.set(val);
                                                 }
                                                 prop:value=password
                                             />
                                             <button
                                                 type="button"
                                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                                on:click=move |_| set_show_password(!show_password())
+                                                on:click=move |_| set_show_password.update(|s| *s = !*s)
                                             >
                                                 {move || {
-                                                    if show_password() {
+                                                    if show_password.get() {
                                                         view! {
                                                             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
@@ -171,9 +171,9 @@ pub fn LoginForm() -> impl IntoView {
                                         variant=ButtonVariant::Primary
                                         size=ButtonSize::Large
                                         full_width=true
-                                        loading=is_loading
-                                        disabled=move || username().is_empty() || password().is_empty()
-                                        on_click=handle_credentials_login
+                                        loading=is_loading.get()
+                                        disabled={move || username.get().is_empty() || password.get().is_empty()}()
+                                        on:click=handle_credentials_login
                                     >
                                         "Sign In"
                                     </Button>
@@ -191,8 +191,8 @@ pub fn LoginForm() -> impl IntoView {
                                         variant=ButtonVariant::Outline
                                         size=ButtonSize::Large
                                         full_width=true
-                                        loading=is_loading
-                                        on_click=move |_| handle_oauth_login("azure")
+                                        loading=is_loading.get()
+                                        onclick=move |_| handle_oauth_login("azure")
                                     >
                                         <div class="flex items-center justify-center space-x-3">
                                             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -207,8 +207,8 @@ pub fn LoginForm() -> impl IntoView {
                                         variant=ButtonVariant::Outline
                                         size=ButtonSize::Large
                                         full_width=true
-                                        loading=is_loading
-                                        on_click=move |_| handle_oauth_login("github")
+                                        loading=is_loading.get()
+                                        onclick=move |_| handle_oauth_login("github")
                                     >
                                         <div class="flex items-center justify-center space-x-3">
                                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -223,8 +223,8 @@ pub fn LoginForm() -> impl IntoView {
                                         variant=ButtonVariant::Outline
                                         size=ButtonSize::Large
                                         full_width=true
-                                        loading=is_loading
-                                        on_click=move |_| handle_oauth_login("google")
+                                        loading=is_loading.get()
+                                        onclick=move |_| handle_oauth_login("google")
                                     >
                                         <div class="flex items-center justify-center space-x-3">
                                             <svg class="w-5 h-5" viewBox="0 0 24 24">

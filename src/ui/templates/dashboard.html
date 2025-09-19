@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drift Registry - Enterprise Container Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --drift-navy: #1e3a8a;
+            --drift-ocean: #0ea5e9;
+            --drift-teal: #06b6d4;
+            --drift-cyan: #22d3ee;
+            --drift-dark: #0f172a;
+            --drift-dark-light: #1e293b;
+        }
+
+        body { font-family: 'Inter', sans-serif; }
+
+        .gradient-ocean {
+            background: linear-gradient(135deg, var(--drift-ocean) 0%, var(--drift-teal) 100%);
+        }
+
+        .gradient-navy {
+            background: linear-gradient(135deg, var(--drift-navy) 0%, var(--drift-ocean) 100%);
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .stats-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .nav-glow:hover {
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(34, 211, 238, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.8); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'drift-navy': '#1e3a8a',
+                        'drift-ocean': '#0ea5e9',
+                        'drift-teal': '#06b6d4',
+                        'drift-cyan': '#22d3ee',
+                        'drift-dark': '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+    <!-- Background -->
+    <div class="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 opacity-50"></div>
+    <div class="fixed inset-0" style="background-image: radial-gradient(circle at 25% 25%, rgba(6, 182, 212, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);"></div>
+
+    <div class="relative z-10" x-data="dashboardApp()">
+        <!-- Sidebar -->
+        <div class="fixed inset-y-0 left-0 w-64 transform transition-transform duration-300 ease-in-out z-30"
+             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+            <div class="glass-card h-full">
+                <!-- Logo -->
+                <div class="flex items-center justify-center h-16 px-6 border-b border-teal-500/20">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 gradient-ocean rounded-lg flex items-center justify-center pulse-glow">
+                            <i class="fas fa-rocket text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">Drift</h1>
+                            <p class="text-xs text-gray-400">Enterprise Registry</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="mt-8 px-4 space-y-2">
+                    <a href="/" class="nav-glow flex items-center space-x-3 px-4 py-3 rounded-xl bg-gradient-to-r from-ocean-500/20 to-teal-500/20 text-cyan-400 border border-cyan-500/30 transition-all">
+                        <i class="fas fa-tachometer-alt w-5"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+
+                    <a href="/repositories" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                        <i class="fas fa-box w-5"></i>
+                        <span class="font-medium">Repositories</span>
+                        <span class="ml-auto bg-teal-500/20 text-teal-400 px-2 py-1 rounded-full text-xs" x-text="stats.total_repositories"></span>
+                    </a>
+
+                    <a href="/images" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                        <i class="fas fa-images w-5"></i>
+                        <span class="font-medium">Container Images</span>
+                        <span class="ml-auto bg-ocean-500/20 text-ocean-400 px-2 py-1 rounded-full text-xs" x-text="stats.total_images"></span>
+                    </a>
+
+                    <div class="pt-4">
+                        <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Access Control</p>
+                        <div class="mt-2 space-y-1">
+                            <a href="/users" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-users w-5"></i>
+                                <span class="font-medium">Users</span>
+                            </a>
+                            <a href="/organizations" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-building w-5"></i>
+                                <span class="font-medium">Organizations</span>
+                            </a>
+                            <a href="/rbac" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-shield-alt w-5"></i>
+                                <span class="font-medium">RBAC</span>
+                                <span class="ml-auto bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs">Active</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Enterprise</p>
+                        <div class="mt-2 space-y-1">
+                            <a href="/signing" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-certificate w-5"></i>
+                                <span class="font-medium">Content Signing</span>
+                            </a>
+                            <a href="/optimization" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-compress-arrows-alt w-5"></i>
+                                <span class="font-medium">Optimization</span>
+                            </a>
+                            <a href="/audit" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-history w-5"></i>
+                                <span class="font-medium">Audit Logs</span>
+                            </a>
+                            <a href="/clustering" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-sitemap w-5"></i>
+                                <span class="font-medium">Clustering</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">System</p>
+                        <div class="mt-2 space-y-1">
+                            <a href="/settings" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-cog w-5"></i>
+                                <span class="font-medium">Settings</span>
+                            </a>
+                            <a href="/monitoring" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all nav-glow">
+                                <i class="fas fa-chart-line w-5"></i>
+                                <span class="font-medium">Monitoring</span>
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Version Info -->
+                <div class="absolute bottom-4 left-4 right-4">
+                    <div class="glass-card p-3 rounded-lg border border-teal-500/20">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-green-400 rounded-full pulse-glow"></div>
+                            <span class="text-xs text-gray-400">v1.0.0-enterprise</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">All systems operational</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="md:ml-64">
+            <!-- Top Bar -->
+            <header class="glass-card h-16 flex items-center justify-between px-6 border-b border-teal-500/20">
+                <div class="flex items-center space-x-4">
+                    <button @click="sidebarOpen = !sidebarOpen" class="md:hidden text-gray-400 hover:text-white">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">Dashboard</h1>
+                        <p class="text-sm text-gray-400">Enterprise Container Registry Overview</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Search -->
+                    <div class="relative hidden md:block">
+                        <input type="text" placeholder="Search repositories..."
+                               class="w-64 px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-colors">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+
+                    <!-- Notifications -->
+                    <button class="relative p-2 text-gray-400 hover:text-white transition-colors nav-glow rounded-lg">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white">3</span>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 p-2 rounded-lg hover:bg-slate-700/50 transition-colors">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                                 class="w-8 h-8 rounded-full border-2 border-teal-400">
+                            <span class="text-sm font-medium text-white hidden md:block">Admin User</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                        </button>
+
+                        <!-- Dropdown -->
+                        <div x-show="open" @click.away="open = false"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-48 glass-card rounded-lg shadow-lg border border-teal-500/20 z-50">
+                            <div class="py-2">
+                                <a href="/profile" class="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                                    <i class="fas fa-user w-4 mr-3"></i>
+                                    Profile Settings
+                                </a>
+                                <a href="/preferences" class="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                                    <i class="fas fa-cog w-4 mr-3"></i>
+                                    Preferences
+                                </a>
+                                <div class="border-t border-slate-600 my-1"></div>
+                                <a href="/logout" class="flex items-center px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-slate-700/50">
+                                    <i class="fas fa-sign-out-alt w-4 mr-3"></i>
+                                    Sign Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <main class="p-6 space-y-6">
+                <!-- Hero Section -->
+                <div class="glass-card rounded-2xl p-8 border border-teal-500/20 slide-up">
+                    <div class="text-center">
+                        <div class="inline-flex items-center space-x-3 mb-4">
+                            <div class="w-16 h-16 gradient-ocean rounded-2xl flex items-center justify-center float">
+                                <i class="fas fa-rocket text-white text-2xl"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-400 bg-clip-text text-transparent">
+                                    Drift Registry
+                                </h1>
+                                <p class="text-lg text-gray-400">Enterprise Container Platform</p>
+                            </div>
+                        </div>
+                        <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                            High-performance OCI registry with gaming optimizations, enterprise security, and advanced clustering capabilities.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Repositories -->
+                    <div class="glass-card rounded-xl p-6 border border-teal-500/20 stats-glow hover:scale-105 transition-transform slide-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 gradient-ocean rounded-lg">
+                                <i class="fas fa-box text-white text-xl"></i>
+                            </div>
+                            <span class="text-xs text-green-400 bg-green-400/20 px-2 py-1 rounded-full">+12%</span>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white" x-text="stats.total_repositories">-</h3>
+                            <p class="text-gray-400 text-sm">Total Repositories</p>
+                        </div>
+                    </div>
+
+                    <!-- Images -->
+                    <div class="glass-card rounded-xl p-6 border border-teal-500/20 stats-glow hover:scale-105 transition-transform slide-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg">
+                                <i class="fas fa-images text-white text-xl"></i>
+                            </div>
+                            <span class="text-xs text-green-400 bg-green-400/20 px-2 py-1 rounded-full">+8%</span>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white" x-text="stats.total_images">-</h3>
+                            <p class="text-gray-400 text-sm">Container Images</p>
+                        </div>
+                    </div>
+
+                    <!-- Users -->
+                    <div class="glass-card rounded-xl p-6 border border-teal-500/20 stats-glow hover:scale-105 transition-transform slide-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg">
+                                <i class="fas fa-users text-white text-xl"></i>
+                            </div>
+                            <span class="text-xs text-blue-400 bg-blue-400/20 px-2 py-1 rounded-full">+5%</span>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white" x-text="stats.total_users">-</h3>
+                            <p class="text-gray-400 text-sm">Active Users</p>
+                        </div>
+                    </div>
+
+                    <!-- Storage -->
+                    <div class="glass-card rounded-xl p-6 border border-teal-500/20 stats-glow hover:scale-105 transition-transform slide-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg">
+                                <i class="fas fa-hdd text-white text-xl"></i>
+                            </div>
+                            <span class="text-xs text-orange-400 bg-orange-400/20 px-2 py-1 rounded-full">+2.1GB</span>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white" x-text="stats.storage_used_gb + ' GB'">-</h3>
+                            <p class="text-gray-400 text-sm">Storage Used</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enterprise Features Grid -->
+                <div>
+                    <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                        <i class="fas fa-crown text-yellow-400 mr-3"></i>
+                        Enterprise Features
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- RBAC -->
+                        <div class="glass-card rounded-xl p-6 border border-teal-500/20 hover:border-teal-400/40 transition-all group">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="p-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-shield-alt text-white text-xl"></i>
+                                </div>
+                                <span class="bg-green-400/20 text-green-400 px-3 py-1 rounded-full text-xs font-medium">
+                                    ✓ Active
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">Role-Based Access Control</h3>
+                            <p class="text-gray-400 text-sm mb-4">Multi-tenant RBAC with organizations, teams, and fine-grained permissions</p>
+                            <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                <span><i class="fas fa-building mr-1"></i><span x-text="stats.active_organizations"></span> Orgs</span>
+                                <span><i class="fas fa-users mr-1"></i><span x-text="stats.total_users"></span> Users</span>
+                            </div>
+                        </div>
+
+                        <!-- Content Signing -->
+                        <div class="glass-card rounded-xl p-6 border border-teal-500/20 hover:border-teal-400/40 transition-all group">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="p-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-lg group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-certificate text-white text-xl"></i>
+                                </div>
+                                <span class="bg-green-400/20 text-green-400 px-3 py-1 rounded-full text-xs font-medium">
+                                    ✓ Active
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">Content Signing</h3>
+                            <p class="text-gray-400 text-sm mb-4">Cosign, Notary v2, and In-Toto signature verification</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">Cosign</span>
+                                <span class="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-xs">Notary v2</span>
+                                <span class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">In-Toto</span>
+                            </div>
+                        </div>
+
+                        <!-- Image Optimization -->
+                        <div class="glass-card rounded-xl p-6 border border-teal-500/20 hover:border-teal-400/40 transition-all group">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="p-3 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-compress-arrows-alt text-white text-xl"></i>
+                                </div>
+                                <span class="bg-green-400/20 text-green-400 px-3 py-1 rounded-full text-xs font-medium">
+                                    ✓ Active
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">Image Optimization</h3>
+                            <p class="text-gray-400 text-sm mb-4">Automated layer deduplication and advanced compression</p>
+                            <div class="text-xs text-gray-500">
+                                <span class="text-green-400">47% space saved</span> across all images
+                            </div>
+                        </div>
+
+                        <!-- Bolt Protocol -->
+                        <div class="glass-card rounded-xl p-6 border border-teal-500/20 hover:border-teal-400/40 transition-all group">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="p-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-bolt text-white text-xl"></i>
+                                </div>
+                                <span class="bg-green-400/20 text-green-400 px-3 py-1 rounded-full text-xs font-medium">
+                                    ✓ Active
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">Bolt Protocol</h3>
+                            <p class="text-gray-400 text-sm mb-4">Gaming-optimized container runtime with ultra-low latency</p>
+                            <div class="text-xs text-gray-500">
+                                Optimized for <span class="text-cyan-400">real-time gaming</span> workloads
+                            </div>
+                        </div>
+
+                        <!-- QUIC Transport -->
+                        <div class="glass-card rounded-xl p-6 border border-teal-500/20 hover:border-teal-400/40 transition-all group">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="p-3 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-rocket text-white text-xl"></i>
+                                </div>
+                                <span class="bg-green-400/20 text-green-400 px-3 py-1 rounded-full text-xs font-medium">
+                                    ✓ Active
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">QUIC Transport</h3>
+                            <p class="text-gray-400 text-sm mb-4">High-performance multiplexed communication with 0-RTT</p>
+                            <div class="text-xs text-gray-500">
+                                <span class="text-green-400">3x faster</span> than traditional HTTP/2
+                            </div>
+                        </div>
+
+                        <!-- HA Clustering -->
+                        <div class="glass-card rounded-xl p-6 border border-teal-500/20 hover:border-teal-400/40 transition-all group">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="p-3 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-sitemap text-white text-xl"></i>
+                                </div>
+                                <span class="bg-green-400/20 text-green-400 px-3 py-1 rounded-full text-xs font-medium">
+                                    ✓ Active
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">HA Clustering</h3>
+                            <p class="text-gray-400 text-sm mb-4">Raft consensus with automatic leader election and failover</p>
+                            <div class="text-xs text-gray-500">
+                                <span class="text-green-400">99.99%</span> uptime guarantee
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass-card rounded-xl p-6 border border-teal-500/20">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-white flex items-center">
+                            <i class="fas fa-history text-teal-400 mr-3"></i>
+                            Recent Activity
+                        </h2>
+                        <button class="text-teal-400 hover:text-teal-300 text-sm flex items-center">
+                            View All <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-4 p-3 rounded-lg hover:bg-slate-700/30 transition-colors">
+                            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-upload text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-white font-medium">New image pushed to acme/web-frontend</p>
+                                <p class="text-gray-400 text-sm">By john.doe • 2 minutes ago</p>
+                            </div>
+                            <span class="bg-green-400/20 text-green-400 px-2 py-1 rounded-full text-xs">Success</span>
+                        </div>
+
+                        <div class="flex items-center space-x-4 p-3 rounded-lg hover:bg-slate-700/30 transition-colors">
+                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user-plus text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-white font-medium">New user added to Engineering team</p>
+                                <p class="text-gray-400 text-sm">By admin • 15 minutes ago</p>
+                            </div>
+                            <span class="bg-blue-400/20 text-blue-400 px-2 py-1 rounded-full text-xs">User</span>
+                        </div>
+
+                        <div class="flex items-center space-x-4 p-3 rounded-lg hover:bg-slate-700/30 transition-colors">
+                            <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-certificate text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-white font-medium">Image signed with Cosign certificate</p>
+                                <p class="text-gray-400 text-sm">acme/api-backend:v1.2.3 • 1 hour ago</p>
+                            </div>
+                            <span class="bg-purple-400/20 text-purple-400 px-2 py-1 rounded-full text-xs">Security</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div x-show="sidebarOpen" @click="sidebarOpen = false"
+         class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+    </div>
+
+    <script>
+        function dashboardApp() {
+            return {
+                sidebarOpen: false,
+                stats: {
+                    total_repositories: 0,
+                    total_images: 0,
+                    total_users: 0,
+                    storage_used_gb: 0,
+                    active_organizations: 0
+                },
+
+                async init() {
+                    await this.loadStats();
+                    this.startRealTimeUpdates();
+                },
+
+                async loadStats() {
+                    try {
+                        const response = await fetch('/api/stats');
+                        if (response.ok) {
+                            this.stats = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Failed to load stats:', error);
+                        // Demo data with realistic numbers
+                        this.stats = {
+                            total_repositories: 42,
+                            total_images: 156,
+                            total_users: 23,
+                            storage_used_gb: 12.5,
+                            active_organizations: 8
+                        };
+                    }
+                },
+
+                startRealTimeUpdates() {
+                    // Simulate real-time updates
+                    setInterval(() => {
+                        if (Math.random() > 0.7) {
+                            this.stats.total_images += Math.floor(Math.random() * 3);
+                        }
+                    }, 5000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

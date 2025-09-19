@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - Drift Registry</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <style>
+        :root {
+            --drift-navy: #1e3a8a;
+            --drift-ocean: #0ea5e9;
+            --drift-teal: #06b6d4;
+            --drift-cyan: #22d3ee;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-100 min-h-screen">
+    <div x-data="usersApp()">
+        <!-- Header -->
+        <nav class="bg-slate-800 border-b border-slate-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                                🐳 Drift Registry
+                            </h1>
+                        </div>
+                        <div class="hidden md:ml-6 md:flex md:space-x-8">
+                            <a href="/" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Dashboard</a>
+                            <a href="/repositories" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Repositories</a>
+                            <a href="/users" class="text-blue-400 border-b-2 border-blue-400 px-3 py-2 text-sm font-medium">Users</a>
+                            <a href="/organizations" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Organizations</a>
+                            <a href="/settings" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <!-- Page Header -->
+            <div class="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Users</h1>
+                    <p class="mt-2 text-gray-400">Manage registry users and permissions</p>
+                </div>
+                <button class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all">
+                    + Invite User
+                </button>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="mb-6 flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                    <input
+                        type="text"
+                        x-model="searchQuery"
+                        placeholder="Search users..."
+                        class="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                </div>
+                <select
+                    x-model="roleFilter"
+                    class="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                >
+                    <option value="">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="developer">Developer</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+
+            <!-- Users Table -->
+            <div class="glass-card rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-700">
+                        <thead class="bg-slate-800/50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">User</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Role</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Organizations</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Last Activity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700">
+                            <template x-for="user in filteredUsers" :key="user.id">
+                                <tr class="hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full border-2 border-cyan-500/30" :src="user.avatar" :alt="user.name">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-white" x-text="user.name"></div>
+                                                <div class="text-sm text-gray-400" x-text="user.email"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                                            :class="{
+                                                'bg-red-900 text-red-300': user.role === 'admin',
+                                                'bg-blue-900 text-blue-300': user.role === 'developer',
+                                                'bg-green-900 text-green-300': user.role === 'viewer'
+                                            }"
+                                            x-text="user.role.charAt(0).toUpperCase() + user.role.slice(1)">
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                        <div class="flex -space-x-1 overflow-hidden">
+                                            <template x-for="org in user.organizations.slice(0, 3)" :key="org">
+                                                <span class="inline-block px-2 py-1 text-xs bg-slate-700 text-gray-300 rounded mr-1" x-text="org"></span>
+                                            </template>
+                                            <span x-show="user.organizations.length > 3" class="text-xs text-gray-400" x-text="'+' + (user.organizations.length - 3)"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300" x-text="user.lastActivity"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                                            :class="{
+                                                'bg-green-900 text-green-300': user.status === 'active',
+                                                'bg-yellow-900 text-yellow-300': user.status === 'inactive',
+                                                'bg-red-900 text-red-300': user.status === 'suspended'
+                                            }"
+                                            x-text="user.status.charAt(0).toUpperCase() + user.status.slice(1)">
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div class="flex justify-end space-x-2">
+                                            <button class="text-cyan-400 hover:text-cyan-300 transition-colors">Edit</button>
+                                            <button class="text-red-400 hover:text-red-300 transition-colors">Remove</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div x-show="filteredUsers.length === 0" class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-300 mb-2">No users found</h3>
+                <p class="text-gray-400">Invite team members to start collaborating.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function usersApp() {
+            return {
+                searchQuery: '',
+                roleFilter: '',
+                users: [
+                    {
+                        id: 1,
+                        name: 'Sarah Connor',
+                        email: 'sarah@company.com',
+                        role: 'admin',
+                        organizations: ['company', 'devops'],
+                        lastActivity: '2 hours ago',
+                        status: 'active',
+                        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+                    },
+                    {
+                        id: 2,
+                        name: 'John Doe',
+                        email: 'john@company.com',
+                        role: 'developer',
+                        organizations: ['backend', 'api'],
+                        lastActivity: '1 day ago',
+                        status: 'active',
+                        avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+                    },
+                    {
+                        id: 3,
+                        name: 'Alice Smith',
+                        email: 'alice@company.com',
+                        role: 'viewer',
+                        organizations: ['frontend'],
+                        lastActivity: '3 days ago',
+                        status: 'inactive',
+                        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+                    }
+                ],
+                get filteredUsers() {
+                    return this.users.filter(user => {
+                        const matchesSearch = user.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                                            user.email.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        const matchesRole = !this.roleFilter || user.role === this.roleFilter;
+                        return matchesSearch && matchesRole;
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>

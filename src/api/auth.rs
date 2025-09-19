@@ -84,7 +84,7 @@ pub async fn register(
     // TODO: Implement user registration
     // For now, return not implemented
     warn!("User registration not implemented");
-    Err(StatusCode::NOT_IMPLEMENTED)
+    Err::<axum::Json<serde_json::Value>, StatusCode>(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn refresh_token(
@@ -92,7 +92,7 @@ pub async fn refresh_token(
 ) -> Result<impl IntoResponse, StatusCode> {
     // TODO: Implement token refresh
     warn!("Token refresh not implemented");
-    Err(StatusCode::NOT_IMPLEMENTED)
+    Err::<axum::Json<serde_json::Value>, StatusCode>(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn logout(

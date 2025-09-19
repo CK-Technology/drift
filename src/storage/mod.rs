@@ -2,7 +2,20 @@ use crate::config::{StorageConfig, StorageType};
 use anyhow::Result;
 use async_trait::async_trait;
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use std::sync::Arc;
+
+#[derive(Debug)]
+pub struct BlobMetadata {
+    pub size: u64,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug)]
+pub struct ManifestMetadata {
+    pub created_at: DateTime<Utc>,
+    pub size: u64,
+}
 
 pub mod filesystem;
 pub mod s3;
@@ -28,6 +41,14 @@ pub trait StorageBackend: Send + Sync {
     async fn put_upload_chunk(&self, uuid: &str, range: (u64, u64), data: Bytes) -> Result<()>;
     async fn complete_upload(&self, uuid: &str, digest: &str) -> Result<()>;
     async fn cancel_upload(&self, uuid: &str) -> Result<()>;
+
+    // Garbage collection methods
+    async fn list_all_blobs(&self) -> Result<Vec<String>>;
+    async fn list_manifests(&self, repo: &str) -> Result<Vec<String>>;
+    async fn get_blob_metadata(&self, digest: &str) -> Result<BlobMetadata>;
+    async fn get_manifest_metadata(&self, repo: &str, digest: &str) -> Result<ManifestMetadata>;
+    async fn get_manifest_by_digest(&self, repo: &str, digest: &str) -> Result<Bytes>;
+    async fn get_manifest_digest(&self, repo: &str, reference: &str) -> Result<String>;
 }
 
 pub async fn create_storage_backend(config: &StorageConfig) -> Result<Arc<dyn StorageBackend>> {

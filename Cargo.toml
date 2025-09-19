@@ -8,7 +8,7 @@ repository = "https://github.com/CK-Technology/drift"
 
 [dependencies]
 # Web framework and async runtime
-axum = { version = "0.7", features = ["multipart", "ws", "headers"] }
+axum = { version = "0.7", features = ["multipart", "ws"] }
 tokio = { version = "1.40", features = ["full"] }
 tower = { version = "0.4", features = ["util", "timeout", "load-shed"] }
 tower-http = { version = "0.5", features = ["fs", "trace", "cors", "compression-gzip"] }
@@ -34,6 +34,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # HTTP client for external requests
 reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Additional dependencies
+base64 = "0.22"
+regex = "1.0"
+urlencoding = "2.1"
 
 # Cryptography and hashing
 sha2 = "0.10"
@@ -74,9 +79,23 @@ leptos_router = { version = "0.6", features = ["ssr"] }
 
 # Frontend build tools
 wasm-bindgen = "0.2"
+web-sys = "0.3"
 
-# Bolt integration (when available)
-# bolt = { git = "https://github.com/CK-Technology/bolt", features = ["registry"], optional = true }
+# Bolt integration
+bolt = { path = "../bolt", features = ["oci-runtime"], optional = true }
+
+# QUIC communication libraries
+quinn = { version = "0.10", optional = true }
+quiche = { version = "0.21", optional = true }
+bincode = "1.3"
+
+# Content signing and optimization
+hex = "0.4"
+flate2 = "1.0"
+
+# RBAC, audit, and clustering
+num_cpus = "1.16"
+rand = "0.8"
 
 # GhostBay storage integration (when available)
 # ghostbay-engine = { git = "https://github.com/CK-Technology/ghostbay", optional = true }
@@ -85,8 +104,11 @@ wasm-bindgen = "0.2"
 
 [features]
 default = []
-bolt-integration = [] # Enable when bolt crate is available
+bolt-integration = ["bolt"] # Enable Bolt protocol integration
 ghostbay-storage = [] # Enable when ghostbay crates are available
+quinn-quic = ["quinn"] # Enable Quinn QUIC backend
+quiche-quic = ["quiche"] # Enable Quiche QUIC backend
+gquic = [] # Enable custom gquic backend (external dependency)
 
 [[bin]]
 name = "drift"

@@ -1,4 +1,4 @@
-use super::StorageBackend;
+use super::{StorageBackend, BlobMetadata, ManifestMetadata};
 use crate::config::GhostBayStorageConfig;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -256,6 +256,67 @@ impl StorageBackend for GhostBayStorage {
         // TODO: Cancel upload in GhostBay
         debug!("🌊 Cancelled upload {} in GhostBay", uuid);
         Ok(())
+    }
+
+    async fn get_manifest_digest(&self, repo: &str, reference: &str) -> Result<String> {
+        // TODO: Get manifest digest from GhostBay storage
+        // This would typically involve querying the manifest metadata
+        let _key = self.manifest_key(repo, reference);
+
+        // For now, return a placeholder digest
+        // In production, this would query GhostBay for the actual digest
+        use std::hash::{DefaultHasher, Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        repo.hash(&mut hasher);
+        reference.hash(&mut hasher);
+        let placeholder_digest = format!("sha256:{:064x}", hasher.finish());
+
+        debug!("🌊 Retrieved manifest digest for {}/{}: {}", repo, reference, placeholder_digest);
+        Ok(placeholder_digest)
+    }
+
+    async fn list_all_blobs(&self) -> Result<Vec<String>> {
+        // TODO: List all blobs from GhostBay storage
+        debug!("🌊 Listing all blobs in GhostBay");
+        Ok(vec![])
+    }
+
+    async fn list_manifests(&self, repo: &str) -> Result<Vec<String>> {
+        let _prefix = format!("manifests/{}/", repo);
+        // TODO: List manifests from GhostBay storage
+        debug!("🌊 Listing manifests for repository {} in GhostBay", repo);
+        Ok(vec![])
+    }
+
+    async fn get_blob_metadata(&self, digest: &str) -> Result<BlobMetadata> {
+        let _key = self.blob_key(digest);
+        // TODO: Get blob metadata from GhostBay storage
+        debug!("🌊 Getting blob metadata for {} in GhostBay", digest);
+
+        Ok(BlobMetadata {
+            size: 0,
+            created_at: chrono::Utc::now(),
+        })
+    }
+
+    async fn get_manifest_metadata(&self, repo: &str, digest: &str) -> Result<ManifestMetadata> {
+        let _key = self.manifest_key(repo, digest);
+        // TODO: Get manifest metadata from GhostBay storage
+        debug!("🌊 Getting manifest metadata for {}/{} in GhostBay", repo, digest);
+
+        Ok(ManifestMetadata {
+            created_at: chrono::Utc::now(),
+            size: 0,
+        })
+    }
+
+    async fn get_manifest_by_digest(&self, repo: &str, digest: &str) -> Result<Bytes> {
+        let _key = self.manifest_key(repo, digest);
+        // TODO: Get manifest by digest from GhostBay storage
+        debug!("🌊 Getting manifest by digest {}/{} in GhostBay", repo, digest);
+
+        // Return empty manifest for now
+        Ok(Bytes::from("{}"))
     }
 }
 

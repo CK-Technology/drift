@@ -5,6 +5,7 @@ pub enum ButtonVariant {
     Primary,
     Secondary,
     Ghost,
+    Outline,
     Danger,
     Success,
 }
@@ -27,18 +28,21 @@ pub fn Button(
     #[prop(optional)] onclick: Option<Box<dyn Fn() + 'static>>,
     #[prop(optional)] href: Option<&'static str>,
     #[prop(optional)] class: Option<&'static str>,
+    #[prop(optional)] full_width: Option<bool>,
     children: Children,
 ) -> impl IntoView {
     let variant = variant.unwrap_or(ButtonVariant::Primary);
     let size = size.unwrap_or(ButtonSize::Medium);
     let disabled = disabled.unwrap_or(false);
     let loading = loading.unwrap_or(false);
+    let full_width = full_width.unwrap_or(false);
     let icon_pos = icon_position.unwrap_or("left");
 
     let variant_class = match variant {
         ButtonVariant::Primary => "btn-primary",
         ButtonVariant::Secondary => "btn-secondary",
         ButtonVariant::Ghost => "btn-ghost",
+        ButtonVariant::Outline => "px-6 py-3 border-2 border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-600 hover:text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95",
         ButtonVariant::Danger => "px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:from-red-700 hover:to-red-800 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95",
         ButtonVariant::Success => "px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95",
     };
@@ -55,7 +59,8 @@ pub fn Button(
         ""
     };
 
-    let final_class = format!("{} {} {} {}", variant_class, size_class, disabled_class, class.unwrap_or(""));
+    let width_class = if full_width { "w-full" } else { "" };
+    let final_class = format!("{} {} {} {} {}", variant_class, size_class, disabled_class, width_class, class.unwrap_or(""));
 
     let button_content = view! {
         <div class="flex items-center justify-center space-x-2">
@@ -143,6 +148,7 @@ pub fn IconButton(
         ButtonVariant::Primary => "bg-blue-600 hover:bg-blue-700 text-white",
         ButtonVariant::Secondary => "bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300",
         ButtonVariant::Ghost => "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400",
+        ButtonVariant::Outline => "border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white",
         ButtonVariant::Danger => "bg-red-600 hover:bg-red-700 text-white",
         ButtonVariant::Success => "bg-green-600 hover:bg-green-700 text-white",
     };

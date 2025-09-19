@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Drift Registry</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <style>
+        :root {
+            --drift-navy: #1e3a8a;
+            --drift-ocean: #0ea5e9;
+            --drift-teal: #06b6d4;
+            --drift-cyan: #22d3ee;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-100 min-h-screen">
+    <div x-data="settingsApp()">
+        <!-- Header -->
+        <nav class="bg-slate-800 border-b border-slate-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                                🐳 Drift Registry
+                            </h1>
+                        </div>
+                        <div class="hidden md:ml-6 md:flex md:space-x-8">
+                            <a href="/" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Dashboard</a>
+                            <a href="/repositories" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Repositories</a>
+                            <a href="/users" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Users</a>
+                            <a href="/organizations" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium">Organizations</a>
+                            <a href="/settings" class="text-blue-400 border-b-2 border-blue-400 px-3 py-2 text-sm font-medium">Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="lg:flex lg:gap-8">
+                <!-- Sidebar -->
+                <div class="lg:w-1/4 mb-8 lg:mb-0">
+                    <nav class="space-y-1">
+                        <button
+                            @click="activeTab = 'general'"
+                            :class="activeTab === 'general' ? 'bg-slate-800 text-cyan-400 border-r-2 border-cyan-400' : 'text-gray-300 hover:bg-slate-800 hover:text-white'"
+                            class="w-full text-left px-3 py-2 text-sm font-medium transition-all"
+                        >
+                            General
+                        </button>
+                        <button
+                            @click="activeTab = 'storage'"
+                            :class="activeTab === 'storage' ? 'bg-slate-800 text-cyan-400 border-r-2 border-cyan-400' : 'text-gray-300 hover:bg-slate-800 hover:text-white'"
+                            class="w-full text-left px-3 py-2 text-sm font-medium transition-all"
+                        >
+                            Storage
+                        </button>
+                        <button
+                            @click="activeTab = 'authentication'"
+                            :class="activeTab === 'authentication' ? 'bg-slate-800 text-cyan-400 border-r-2 border-cyan-400' : 'text-gray-300 hover:bg-slate-800 hover:text-white'"
+                            class="w-full text-left px-3 py-2 text-sm font-medium transition-all"
+                        >
+                            Authentication
+                        </button>
+                        <button
+                            @click="activeTab = 'bolt'"
+                            :class="activeTab === 'bolt' ? 'bg-slate-800 text-cyan-400 border-r-2 border-cyan-400' : 'text-gray-300 hover:bg-slate-800 hover:text-white'"
+                            class="w-full text-left px-3 py-2 text-sm font-medium transition-all"
+                        >
+                            Bolt Integration
+                        </button>
+                        <button
+                            @click="activeTab = 'security'"
+                            :class="activeTab === 'security' ? 'bg-slate-800 text-cyan-400 border-r-2 border-cyan-400' : 'text-gray-300 hover:bg-slate-800 hover:text-white'"
+                            class="w-full text-left px-3 py-2 text-sm font-medium transition-all"
+                        >
+                            Security
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Main Settings Area -->
+                <div class="lg:w-3/4">
+                    <!-- General Settings -->
+                    <div x-show="activeTab === 'general'" class="space-y-6">
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">Registry Configuration</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Registry Name</label>
+                                    <input type="text" x-model="settings.general.registryName" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Registry URL</label>
+                                    <input type="text" x-model="settings.general.registryUrl" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Max Upload Size (MB)</label>
+                                    <input type="number" x-model="settings.general.maxUploadSize" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">Garbage Collection</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-300">Enable automatic cleanup</span>
+                                    <input type="checkbox" x-model="settings.general.gcEnabled" class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Cleanup Interval (hours)</label>
+                                    <input type="number" x-model="settings.general.gcInterval" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Settings -->
+                    <div x-show="activeTab === 'storage'" class="space-y-6">
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">Storage Backend</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Storage Type</label>
+                                    <select x-model="settings.storage.type" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                        <option value="filesystem">Filesystem</option>
+                                        <option value="s3">Amazon S3</option>
+                                        <option value="ghostbay">GhostBay</option>
+                                    </select>
+                                </div>
+                                <div x-show="settings.storage.type === 'filesystem'">
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Storage Path</label>
+                                    <input type="text" x-model="settings.storage.path" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                </div>
+                                <div x-show="settings.storage.type === 's3'" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">S3 Bucket</label>
+                                        <input type="text" x-model="settings.storage.s3Bucket" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">AWS Region</label>
+                                        <input type="text" x-model="settings.storage.s3Region" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Authentication Settings -->
+                    <div x-show="activeTab === 'authentication'" class="space-y-6">
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">OAuth Providers</h3>
+                            <div class="space-y-4">
+                                <div class="border border-slate-700 rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-white font-medium">Azure AD</span>
+                                        <input type="checkbox" x-model="settings.auth.azureEnabled" class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded">
+                                    </div>
+                                    <div x-show="settings.auth.azureEnabled" class="space-y-3">
+                                        <input type="text" placeholder="Tenant ID" x-model="settings.auth.azureTenantId" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                        <input type="text" placeholder="Client ID" x-model="settings.auth.azureClientId" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                    </div>
+                                </div>
+                                <div class="border border-slate-700 rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-white font-medium">GitHub</span>
+                                        <input type="checkbox" x-model="settings.auth.githubEnabled" class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded">
+                                    </div>
+                                    <div x-show="settings.auth.githubEnabled" class="space-y-3">
+                                        <input type="text" placeholder="Client ID" x-model="settings.auth.githubClientId" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                        <input type="password" placeholder="Client Secret" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bolt Integration Settings -->
+                    <div x-show="activeTab === 'bolt'" class="space-y-6">
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">Bolt Protocol Configuration</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="text-white font-medium">Enable Bolt Integration</span>
+                                        <p class="text-sm text-gray-400">Gaming-optimized container runtime</p>
+                                    </div>
+                                    <input type="checkbox" x-model="settings.bolt.enabled" class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded">
+                                </div>
+                                <div x-show="settings.bolt.enabled" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">Runtime Path</label>
+                                        <input type="text" x-model="settings.bolt.runtimePath" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">Performance Profile</label>
+                                        <select x-model="settings.bolt.profile" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                            <option value="standard">Standard</option>
+                                            <option value="gaming">Gaming Optimized</option>
+                                            <option value="realtime">Real-time</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Settings -->
+                    <div x-show="activeTab === 'security'" class="space-y-6">
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">Content Signing</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-white">Require signed images</span>
+                                    <input type="checkbox" x-model="settings.security.requireSigning" class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Signing Format</label>
+                                    <select x-model="settings.security.signingFormat" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                        <option value="cosign">Cosign</option>
+                                        <option value="notary">Notary v2</option>
+                                        <option value="simple">Simple Signing</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-white mb-4">QUIC Transport</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-white">Enable QUIC protocol</span>
+                                    <input type="checkbox" x-model="settings.security.quicEnabled" class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded">
+                                </div>
+                                <div x-show="settings.security.quicEnabled">
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">QUIC Backend</label>
+                                    <select x-model="settings.security.quicBackend" class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                                        <option value="quinn">Quinn</option>
+                                        <option value="quiche">Quiche</option>
+                                        <option value="gquic">GQuic (Custom)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="mt-8">
+                        <button @click="saveSettings()" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all">
+                            Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function settingsApp() {
+            return {
+                activeTab: 'general',
+                settings: {
+                    general: {
+                        registryName: 'Drift Registry',
+                        registryUrl: 'https://registry.company.com',
+                        maxUploadSize: 5000,
+                        gcEnabled: true,
+                        gcInterval: 24
+                    },
+                    storage: {
+                        type: 'filesystem',
+                        path: '/var/lib/drift/storage',
+                        s3Bucket: '',
+                        s3Region: 'us-east-1'
+                    },
+                    auth: {
+                        azureEnabled: true,
+                        azureTenantId: '',
+                        azureClientId: '',
+                        githubEnabled: false,
+                        githubClientId: ''
+                    },
+                    bolt: {
+                        enabled: true,
+                        runtimePath: '/usr/local/bin/bolt',
+                        profile: 'gaming'
+                    },
+                    security: {
+                        requireSigning: false,
+                        signingFormat: 'cosign',
+                        quicEnabled: true,
+                        quicBackend: 'quinn'
+                    }
+                },
+                saveSettings() {
+                    // Simulate saving settings
+                    console.log('Saving settings:', this.settings);
+                    // You would typically send this to your API
+                }
+            }
+        }
+    </script>
+</body>
+</html>

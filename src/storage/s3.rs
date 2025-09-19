@@ -1,4 +1,4 @@
-use super::StorageBackend;
+use super::{BlobMetadata, ManifestMetadata, StorageBackend};
 use crate::config::S3Config;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -7,6 +7,8 @@ use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart};
 use aws_sdk_s3::{config::Credentials, Client, Config};
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use tracing::{debug, error, info};
 
@@ -410,5 +412,231 @@ impl StorageBackend for S3Storage {
 
         debug!("Cancelled upload {}", uuid);
         Ok(())
+    }
+
+    // Garbage collection methods
+    async fn list_all_blobs(&self) -> Result<Vec<String>> {
+        let mut blobs = Vec::new();
+        let mut continuation_token: Option<String> = None;
+
+        loop {
+            let mut request = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix("blobs/");
+
+            if let Some(token) = continuation_token {
+                request = request.continuation_token(token);
+            }
+
+            let response = request.send().await?;
+
+            if let Some(contents) = response.contents {
+                for object in contents {
+                    if let Some(key) = object.key {
+                        // Extract digest from key (remove "blobs/" prefix)
+                        if let Some(digest) = key.strip_prefix("blobs/") {
+                            blobs.push(digest.to_string());
+                        }
+                    }
+                }
+            }
+
+            if !response.is_truncated.unwrap_or(false) {
+                break;
+            }
+
+            continuation_token = response.next_continuation_token;
+        }
+
+        Ok(blobs)
+    }
+
+    async fn list_manifests(&self, repo: &str) -> Result<Vec<String>> {
+        let mut manifests = Vec::new();
+        let prefix = format!("manifests/{}/", repo);
+        let mut continuation_token: Option<String> = None;
+
+        loop {
+            let mut request = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix(&prefix);
+
+            if let Some(token) = continuation_token {
+                request = request.continuation_token(token);
+            }
+
+            let response = request.send().await?;
+
+            if let Some(contents) = response.contents {
+                for object in contents {
+                    if let Some(key) = object.key {
+                        // For manifest digests, we need to get the object and compute its hash
+                        match self.client
+                            .get_object()
+                            .bucket(&self.bucket)
+                            .key(&key)
+                            .send()
+                            .await {
+                            Ok(response) => {
+                                let body = response.body.collect().await?;
+                                let digest = format!("sha256:{:x}", Sha256::digest(&body.into_bytes()));
+                                manifests.push(digest);
+                            }
+                            Err(_) => continue,
+                        }
+                    }
+                }
+            }
+
+            if !response.is_truncated.unwrap_or(false) {
+                break;
+            }
+
+            continuation_token = response.next_continuation_token;
+        }
+
+        Ok(manifests)
+    }
+
+    async fn get_blob_metadata(&self, digest: &str) -> Result<BlobMetadata> {
+        let key = self.blob_key(digest);
+
+        let response = self
+            .client
+            .head_object()
+            .bucket(&self.bucket)
+            .key(&key)
+            .send()
+            .await?;
+
+        let size = response.content_length.unwrap_or(0) as u64;
+        let created_at = response.last_modified
+            .map(|dt| chrono::DateTime::from_timestamp(dt.secs(), dt.subsec_nanos()).unwrap_or_else(Utc::now))
+            .unwrap_or_else(Utc::now);
+
+        Ok(BlobMetadata { size, created_at })
+    }
+
+    async fn get_manifest_metadata(&self, repo: &str, digest: &str) -> Result<ManifestMetadata> {
+        // For digest-based lookups, we need to find the manifest file
+        let prefix = format!("manifests/{}/", repo);
+        let mut continuation_token: Option<String> = None;
+
+        loop {
+            let mut request = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix(&prefix);
+
+            if let Some(token) = continuation_token {
+                request = request.continuation_token(token);
+            }
+
+            let response = request.send().await?;
+
+            if let Some(contents) = response.contents {
+                for object in contents {
+                    if let Some(key) = object.key {
+                        // Check if this file's digest matches
+                        if let Ok(obj_response) = self.client
+                            .get_object()
+                            .bucket(&self.bucket)
+                            .key(&key)
+                            .send()
+                            .await {
+                            let body = obj_response.body.collect().await?;
+                            let file_digest = format!("sha256:{:x}", Sha256::digest(&body.into_bytes()));
+
+                            if file_digest == digest {
+                                let head_response = self
+                                    .client
+                                    .head_object()
+                                    .bucket(&self.bucket)
+                                    .key(&key)
+                                    .send()
+                                    .await?;
+
+                                let size = head_response.content_length.unwrap_or(0) as u64;
+                                let created_at = head_response.last_modified
+                                    .map(|dt| chrono::DateTime::from_timestamp(dt.secs(), dt.subsec_nanos()).unwrap_or_else(Utc::now))
+                                    .unwrap_or_else(Utc::now);
+
+                                return Ok(ManifestMetadata { size, created_at });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !response.is_truncated.unwrap_or(false) {
+                break;
+            }
+
+            continuation_token = response.next_continuation_token;
+        }
+
+        Err(anyhow::anyhow!("Manifest not found: {}", digest))
+    }
+
+    async fn get_manifest_by_digest(&self, repo: &str, digest: &str) -> Result<Bytes> {
+        let prefix = format!("manifests/{}/", repo);
+        let mut continuation_token: Option<String> = None;
+
+        loop {
+            let mut request = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix(&prefix);
+
+            if let Some(token) = continuation_token {
+                request = request.continuation_token(token);
+            }
+
+            let response = request.send().await?;
+
+            if let Some(contents) = response.contents {
+                for object in contents {
+                    if let Some(key) = object.key {
+                        // Check if this file's digest matches
+                        if let Ok(obj_response) = self.client
+                            .get_object()
+                            .bucket(&self.bucket)
+                            .key(&key)
+                            .send()
+                            .await {
+                            let body = obj_response.body.collect().await?;
+                            let manifest_data = body.into_bytes();
+                            let file_digest = format!("sha256:{:x}", Sha256::digest(&manifest_data));
+
+                            if file_digest == digest {
+                                return Ok(manifest_data.into());
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !response.is_truncated.unwrap_or(false) {
+                break;
+            }
+
+            continuation_token = response.next_continuation_token;
+        }
+
+        Err(anyhow::anyhow!("Manifest not found: {}", digest))
+    }
+
+    async fn get_manifest_digest(&self, repo: &str, reference: &str) -> Result<String> {
+        let manifest_data = self.get_manifest(repo, reference).await?
+            .ok_or_else(|| anyhow::anyhow!("Manifest not found: {}/{}", repo, reference))?;
+
+        let digest = format!("sha256:{:x}", Sha256::digest(&manifest_data));
+        Ok(digest)
     }
 }

@@ -1,7 +1,9 @@
-use super::StorageBackend;
+use super::{BlobMetadata, ManifestMetadata, StorageBackend};
 use anyhow::Result;
 use async_trait::async_trait;
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tracing::{debug, error};
@@ -241,5 +243,138 @@ impl StorageBackend for FilesystemStorage {
                 Err(e.into())
             }
         }
+    }
+
+    // Garbage collection methods
+    async fn list_all_blobs(&self) -> Result<Vec<String>> {
+        let mut blobs = Vec::new();
+        let blobs_path = self.base_path.join("blobs");
+
+        if !blobs_path.exists() {
+            return Ok(blobs);
+        }
+
+        // Walk through all subdirectories in blobs/
+        let mut prefix_entries = fs::read_dir(&blobs_path).await?;
+
+        while let Some(prefix_entry) = prefix_entries.next_entry().await? {
+            if prefix_entry.file_type().await?.is_dir() {
+                let prefix_path = prefix_entry.path();
+                let mut blob_entries = fs::read_dir(&prefix_path).await?;
+
+                while let Some(blob_entry) = blob_entries.next_entry().await? {
+                    if blob_entry.file_type().await?.is_file() {
+                        if let Some(digest) = blob_entry.file_name().to_str() {
+                            blobs.push(digest.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(blobs)
+    }
+
+    async fn list_manifests(&self, repo: &str) -> Result<Vec<String>> {
+        let mut manifests = Vec::new();
+        let repo_path = self.base_path.join("manifests").join(repo);
+
+        if !repo_path.exists() {
+            return Ok(manifests);
+        }
+
+        let mut entries = fs::read_dir(&repo_path).await?;
+
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.file_type().await?.is_file() {
+                if let Some(name) = entry.file_name().to_str() {
+                    // For manifest digests, we need to compute the SHA256 of the file
+                    let manifest_data = fs::read(entry.path()).await?;
+                    let digest = format!("sha256:{:x}", Sha256::digest(&manifest_data));
+                    manifests.push(digest);
+                }
+            }
+        }
+
+        Ok(manifests)
+    }
+
+    async fn get_blob_metadata(&self, digest: &str) -> Result<BlobMetadata> {
+        let path = self.blob_path(digest);
+        let metadata = fs::metadata(&path).await?;
+
+        let created_at = metadata.created()
+            .or_else(|_| metadata.modified())?
+            .into();
+
+        Ok(BlobMetadata {
+            size: metadata.len(),
+            created_at,
+        })
+    }
+
+    async fn get_manifest_metadata(&self, repo: &str, digest: &str) -> Result<ManifestMetadata> {
+        // For digest-based lookups, we need to find the manifest file
+        let repo_path = self.base_path.join("manifests").join(repo);
+
+        if !repo_path.exists() {
+            return Err(anyhow::anyhow!("Repository not found: {}", repo));
+        }
+
+        let mut entries = fs::read_dir(&repo_path).await?;
+
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.file_type().await?.is_file() {
+                // Check if this file's digest matches
+                let manifest_data = fs::read(entry.path()).await?;
+                let file_digest = format!("sha256:{:x}", Sha256::digest(&manifest_data));
+
+                if file_digest == digest {
+                    let metadata = fs::metadata(entry.path()).await?;
+                    let created_at = metadata.created()
+                        .or_else(|_| metadata.modified())?
+                        .into();
+
+                    return Ok(ManifestMetadata {
+                        size: metadata.len(),
+                        created_at,
+                    });
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Manifest not found: {}", digest))
+    }
+
+    async fn get_manifest_by_digest(&self, repo: &str, digest: &str) -> Result<Bytes> {
+        let repo_path = self.base_path.join("manifests").join(repo);
+
+        if !repo_path.exists() {
+            return Err(anyhow::anyhow!("Repository not found: {}", repo));
+        }
+
+        let mut entries = fs::read_dir(&repo_path).await?;
+
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.file_type().await?.is_file() {
+                // Check if this file's digest matches
+                let manifest_data = fs::read(entry.path()).await?;
+                let file_digest = format!("sha256:{:x}", Sha256::digest(&manifest_data));
+
+                if file_digest == digest {
+                    return Ok(manifest_data.into());
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Manifest not found: {}", digest))
+    }
+
+    async fn get_manifest_digest(&self, repo: &str, reference: &str) -> Result<String> {
+        let manifest_data = self.get_manifest(repo, reference).await?
+            .ok_or_else(|| anyhow::anyhow!("Manifest not found: {}/{}", repo, reference))?;
+
+        let digest = format!("sha256:{:x}", Sha256::digest(&manifest_data));
+        Ok(digest)
     }
 }
